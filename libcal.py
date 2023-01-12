@@ -38,16 +38,26 @@ def get_libcal_information(endpoint):
     
     r = requests.get(f'{libcal_url}{endpoint}', headers=headers)
 
-    # print(r.status_code)
-    print(r.json()[0])
+    if r.status_code != 200:
+        print(r.text)
+        return False
+    
+    return r.json()
 
-    for t in r.json()[0].keys():
-        print(t)
+# Connect to DB
 
-# get_libcal_information('calendars')
-# get_libcal_information('events?cal_id=11060')
+# Query locations API and save id and room name into memory
+
+# Get most recent date added
+
+# Query bookings API from most recent date added recursively using page param until len of returned values is less than limit
+
+# Commit to DB
+
+# Disconnect from DB
+
 # get_libcal_information('space/bookings?date=2020-01-01&days=7')
-get_libcal_information('space/locations')
+print(get_libcal_information('space/locations'))
 
 # libcalEndpoint = "https://slv-vic.libcal.com/1.1/space/bookings?limit=500&formAnswers=1&date="+ydate
 # libcalLocations = "https://slv-vic.libcal.com/1.1/space/locations"
