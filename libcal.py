@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
-
+from datetime import datetime
 import requests
+from shared_db import query_database
 
 load_dotenv
 libcal_url = os.environ.get('LIBCAL_URL')
@@ -44,20 +45,38 @@ def get_libcal_information(endpoint):
     
     return r.json()
 
-# Connect to DB
+def get_locations():
+
+    locations = get_libcal_information('space/locations')
+
+    return locations
+
+def get_bookings(date=False, days=365, page=1, limit=500):
+
+    if not date:
+        date = datetime.today().strftime('%Y-%m-%d')
+
+    bookings = get_libcal_information(f'space/bookings?date={date}&days={days}&limit={limit}&date={date}&page={page}')
+
+    return bookings
 
 # Query locations API and save id and room name into memory
 
+
 # Get most recent date added
+sql_statement = """
+select date
+from public.slv_data
+where project = 'libcal'
+ORDER BY date DESC
+LIMIT 1
+"""
+top_date_in_db = query_database(sql_statement, return_data=True)
+
+print(top_date_in_db)
 
 # Query bookings API from most recent date added recursively using page param until len of returned values is less than limit
 
 # Commit to DB
 
 # Disconnect from DB
-
-# get_libcal_information('space/bookings?date=2020-01-01&days=7')
-print(get_libcal_information('space/locations'))
-
-# libcalEndpoint = "https://slv-vic.libcal.com/1.1/space/bookings?limit=500&formAnswers=1&date="+ydate
-# libcalLocations = "https://slv-vic.libcal.com/1.1/space/locations"
