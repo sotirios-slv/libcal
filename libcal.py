@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from datetime import date, datetime
+from datetime import date, timedelta, datetime
 import requests
 from shared_db import query_database
 
@@ -77,17 +77,25 @@ top_date_in_db = query_database(sql_statement, return_data=True)
 if not top_date_in_db:
     print('Could not retrieve most recent date from database')
 
+# check date of most recent booking, this is to prevent an infinite loop if there's no booking for 'today'
+date_to_check = date.today()
+most_recent_bookings = get_bookings(date=date_to_check,limit=1,days=1)
+
+while len(most_recent_bookings) == 0:
+    date_to_check = date_to_check - timedelta(days=1)
+    most_recent_bookings = get_bookings(date=date_to_check,limit=1,days=1)
+
+
+print(date_to_check)
 # Calculate no. of days since last update. If it's less than the APIs max days (365) add to the query param
 last_date_retrieved = top_date_in_db[0][0]
-today = date.today()
 
 booking_dates = []
 
 days_since_last_update = 1
-
 while days_since_last_update > 0:
     
-    days_since_last_update = today - last_date_retrieved
+    days_since_last_update = date_to_check - last_date_retrieved
     days_since_last_update = int(days_since_last_update.days)
     print('Days: ', days_since_last_update)
 
