@@ -78,32 +78,41 @@ if not top_date_in_db:
     print('Could not retrieve most recent date from database')
 
 # Calculate no. of days since last update. If it's less than the APIs max days (365) add to the query param
-top_date_in_db = top_date_in_db[0][0]
-
+last_date_retrieved = top_date_in_db[0][0]
 today = date.today()
-days_since_last_update = today - top_date_in_db
-days_since_last_update = int(days_since_last_update.days)
 
-days = min(days_since_last_update,365)
-
-# Query bookings API from most recent date added recursively using page param until len of returned values is less than limit
-# Do not include any bookings after 'today'
 booking_dates = []
-page_counter = 1
-bookings_info = get_bookings(date=top_date_in_db,days=days, page=page_counter)
-#  2021-11-10T10:00:00+11:00
-from_dates = [datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z') for booking in bookings_info]
-booking_dates.extend(from_dates)
 
-while len(bookings_info) > 0:
-    page_counter += 1
-    bookings_info = get_bookings(date=top_date_in_db,days=days, page=page_counter)
+days_since_last_update = 1
+
+while days_since_last_update > 0:
+    
+    days_since_last_update = today - last_date_retrieved
+    days_since_last_update = int(days_since_last_update.days)
+    print('Days: ', days_since_last_update)
+
+    days = min(days_since_last_update,365)
+
+    # Query bookings API from most recent date added recursively using page param until len of returned values is less than limit
+    # Do not include any bookings after 'today'
+    page_counter = 1
+    bookings_info = get_bookings(date=last_date_retrieved,days=days, page=page_counter)
+
+    #  Date returned from LibCal API in following format: 2021-11-10T10:00:00+11:00
     from_dates = [datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z') for booking in bookings_info]
-    if len(from_dates) > 0:
-        print(max(from_dates))
     booking_dates.extend(from_dates)
 
-last_date_retrieved = max(booking_dates)
+    while len(bookings_info) > 0:
+        page_counter += 1
+        bookings_info = get_bookings(date=last_date_retrieved,days=days, page=page_counter)
+        from_dates = [datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z') for booking in bookings_info]
+        if len(from_dates) > 0:
+            print(max(from_dates))
+        booking_dates.extend(from_dates)
+
+    last_date_retrieved = max(booking_dates).date()
+
+print(len(booking_dates))
 
 
 
