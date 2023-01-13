@@ -17,6 +17,7 @@ def query_database(sql_statement, return_data=False):
         conn = psycopg2.connect(host=host,dbname=dbname, user=user, password=password)
         cur = conn.cursor()
         cur.execute(sql_statement)
+        # Not every call to the DB will require data to be returned by the function, hence the return_data flag
         if return_data:
             data_to_return = cur.fetchall()
         conn.commit()
@@ -27,12 +28,3 @@ def query_database(sql_statement, return_data=False):
     except Exception as e:
         print(f'Could not complete sql query. Here is the exception returned: {e}')
         return False
-
-# sql_statement = """
-# select  *
-# from public.slv_data
-# where project = 'libcal'
-# LIMIT 1000
-# """
-
-# print(query_database(sql_statement))
