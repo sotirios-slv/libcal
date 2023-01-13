@@ -1,4 +1,5 @@
 import os
+import csv
 
 from dotenv import load_dotenv
 import psycopg2
@@ -28,3 +29,11 @@ def query_database(sql_statement, return_data=False):
     except Exception as e:
         print(f'Could not complete sql query. Here is the exception returned: {e}')
         return False
+
+def export_to_csv(filename,data_to_write):
+
+    f = open(f'{filename}.csv',"a+", newline='')
+
+    with f:
+        write = csv.writer(f)
+        write.writerows(data_to_write)
