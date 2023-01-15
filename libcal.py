@@ -88,7 +88,6 @@ while len(most_recent_bookings) == 0:
     most_recent_bookings = get_bookings(date=date_to_check,limit=1,days=1)
 
 
-print(date_to_check)
 # Calculate no. of days since last update. If it's less than the APIs max days (365) add to the query param
 last_date_retrieved = top_date_in_db[0][0]
 
@@ -110,30 +109,22 @@ while days_since_last_update > 0:
     bookings_info = get_bookings(date=last_date_retrieved,days=days, page=page_counter)
 
     #  Date returned from LibCal API in following format: 2021-11-10T10:00:00+11:00
-    from_dates = [datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z') for booking in bookings_info]
-    booking_dates.extend(from_dates)
-
-    value_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
-    returned_values_upload_list.extend(value_for_upload)
+    values_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
+    returned_values_upload_list.extend(values_for_upload)
 
     while len(bookings_info) > 0:
         page_counter += 1
-        bookings_info = get_bookings(date=last_date_retrieved,days=days, page=page_counter)
-        from_dates = [datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z') for booking in bookings_info] # todo: need to add more flexibility if key not found
-        value_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
+        # todo: need to add exception handling for if 'fromDate key not found
+        values_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
 
-        booking_dates.extend(from_dates)
-        returned_values_upload_list.extend(value_for_upload)
+        returned_values_upload_list.extend(values_for_upload)
 
-    last_date_retrieved = max(booking_dates).date()
 
-print(len(booking_dates))
+    # Complicated one-liner to get the most recent date:
+    last_date_retrieved = max([element[0].date() for element in returned_values_upload_list])
 
-# default_values = [[str(booking.date()),'visitor','libcal','booking'] for booking in booking_dates]
-# combined_values = zip(default_values,returned_values_upload_list)
 
-# print('Default: ', len(combined_values))
-export_to_csv('exports/booking_dates', returned_values_upload_list)
+# export_to_csv('exports/booking_dates', returned_values_upload_list)
 
 
 
