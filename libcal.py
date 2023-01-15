@@ -67,6 +67,7 @@ def get_bookings(date=False, days=365, page=1, limit=500):
 # print(locations)
 
 # Get most recent date added
+# todo: wrap in function
 sql_statement = """
 select date
 from public.slv_data
@@ -79,9 +80,9 @@ if not top_date_in_db:
     print('Could not retrieve most recent date from database')
 
 # check date of most recent booking, this is to prevent an infinite loop if there's no booking for 'today'
+# todo: wrap in function
 date_to_check = date.today()
 most_recent_bookings = get_bookings(date=date_to_check,limit=1,days=1)
-
 while len(most_recent_bookings) == 0:
     date_to_check = date_to_check - timedelta(days=1)
     most_recent_bookings = get_bookings(date=date_to_check,limit=1,days=1)
@@ -92,15 +93,15 @@ print(date_to_check)
 last_date_retrieved = top_date_in_db[0][0]
 
 booking_dates = []
-non_default_values = []
+returned_values_upload_list = []
 
 days_since_last_update = 1
 while days_since_last_update > 0:
     
+    # todo: wrap in function
     days_since_last_update = date_to_check - last_date_retrieved
     days_since_last_update = int(days_since_last_update.days)
     print('Days: ', days_since_last_update)
-
     days = min(days_since_last_update,365)
 
     # Query bookings API from most recent date added recursively using page param until len of returned values is less than limit
@@ -112,27 +113,27 @@ while days_since_last_update > 0:
     from_dates = [datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z') for booking in bookings_info]
     booking_dates.extend(from_dates)
 
-    non_defaults = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
-    non_default_values.extend(non_defaults)
+    value_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
+    returned_values_upload_list.extend(value_for_upload)
 
     while len(bookings_info) > 0:
         page_counter += 1
         bookings_info = get_bookings(date=last_date_retrieved,days=days, page=page_counter)
         from_dates = [datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z') for booking in bookings_info] # todo: need to add more flexibility if key not found
-        non_defaults = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
+        value_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
 
         booking_dates.extend(from_dates)
-        non_default_values.extend(non_defaults)
+        returned_values_upload_list.extend(value_for_upload)
 
     last_date_retrieved = max(booking_dates).date()
 
 print(len(booking_dates))
 
 # default_values = [[str(booking.date()),'visitor','libcal','booking'] for booking in booking_dates]
-# combined_values = zip(default_values,non_default_values)
+# combined_values = zip(default_values,returned_values_upload_list)
 
 # print('Default: ', len(combined_values))
-export_to_csv('exports/booking_dates', non_default_values)
+export_to_csv('exports/booking_dates', returned_values_upload_list)
 
 
 
