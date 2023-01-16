@@ -4,6 +4,8 @@ import csv
 from dotenv import load_dotenv
 import psycopg2
 
+from api_import_config import API_FIELDS_TO_RETURN
+
 load_dotenv()
 
 host = os.environ.get('DB_HOST')
@@ -64,4 +66,5 @@ def export_to_csv(filename,data_to_write):
 
     with f:
         write = csv.writer(f)
+        write.writerow(API_FIELDS_TO_RETURN)
         write.writerows(data_to_write)

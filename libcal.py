@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from datetime import date, timedelta, datetime
 import requests
 from shared_helpers import export_to_csv, get_most_recent_date_in_db
+from api_import_config import API_FIELDS_TO_RETURN
+
 
 load_dotenv
 libcal_url = os.environ.get('LIBCAL_URL')
@@ -84,7 +86,7 @@ def get_bookings(date_to_retrieve=False, days=365, page=1, limit=500):
     if not date_to_retrieve:
         date_to_retrieve = date.today().strftime('%Y-%m-%d')
 
-    bookings = get_libcal_information(f'space/bookings?date={date_to_retrieve}&days={days}&limit={limit}&page={page}&formAnswers=1')
+    bookings = get_libcal_information(f'space/bookings?date={date_to_retrieve}&days={days}&limit={limit}&page={page}')
 
     return bookings
 
@@ -104,6 +106,16 @@ def get_most_recent_booking():
         most_recent_bookings = get_bookings(date=most_recent_booking,limit=1,days=1)
 
     return most_recent_booking
+
+def format_booking_data(booking):
+
+    formatted_booking_info = [booking.get(field,'') for field in API_FIELDS_TO_RETURN]
+
+    #* Date returned from LibCal API in following format e.g. 2021-11-10T10:00:00+11:00
+    formatted_booking_info[4] = datetime.strptime(formatted_booking_info[4],'%Y-%m-%dT%H:%M:%S%z')
+    formatted_booking_info[4] = formatted_booking_info[4].date()
+
+    return formatted_booking_info
 
 def get_booking_data_to_upload():
     """Polls the LibCal recursively from the last date recorded in the DB (or the default value if not present) and builds a list of lists containing the data to upload to the DB
@@ -133,33 +145,26 @@ def get_booking_data_to_upload():
             page_counter = 1
             bookings_info = get_bookings(date_to_retrieve=last_date_retrieved,days=days, page=page_counter)
 
-            #* Date returned from LibCal API in following format e.g. 2021-11-10T10:00:00+11:00
-            values_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
+            values_for_upload = [format_booking_data(booking) for booking in bookings_info]
             returned_values_upload_list.extend(values_for_upload)
 
             while len(bookings_info) > 0:
                 page_counter += 1
                 bookings_info = get_bookings(date_to_retrieve=last_date_retrieved,days=days, page=page_counter)
-                # todo: need to add exception handling if 'fromDate' key not found
-                values_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
-
+                values_for_upload = [format_booking_data(booking) for booking in bookings_info]
                 returned_values_upload_list.extend(values_for_upload)
 
             #* Complicated one-liner to get the most recent date:
-            last_date_retrieved = max([element[0].date() for element in returned_values_upload_list])
+            last_date_retrieved = max([element[4] for element in returned_values_upload_list])
     except Exception as e:
         print(f"The following error occurred: {e}. Process aborted")
         return False
 
     return returned_values_upload_list
 
-# export_to_csv('exports/booking_dates', returned_values_upload_list)
+returned_values_upload_list = get_booking_data_to_upload()
 
-test = get_bookings(limit=1)[0]
-
-for k, v in test.items():
-    print(k, v)
-
+export_to_csv('exports/booking_dates', returned_values_upload_list)
 
 
 # Commit to DB
