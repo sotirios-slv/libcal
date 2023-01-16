@@ -20,7 +20,7 @@ def query_database(sql_statement, return_data=False):
 
     Returns:
         bool: Will return True/False flag to indicate that the SQL statement was successfully run
-        list: Data returned from te databas
+        list: Data returned from the database
     """
     try :
         data_to_return = True

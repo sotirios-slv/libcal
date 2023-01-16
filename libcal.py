@@ -84,7 +84,7 @@ def get_bookings(date_to_retrieve=False, days=365, page=1, limit=500):
     if not date_to_retrieve:
         date_to_retrieve = date.today().strftime('%Y-%m-%d')
 
-    bookings = get_libcal_information(f'space/bookings?date={date_to_retrieve}&days={days}&limit={limit}&page={page}')
+    bookings = get_libcal_information(f'space/bookings?date={date_to_retrieve}&days={days}&limit={limit}&page={page}&formAnswers=1')
 
     return bookings
 
@@ -154,6 +154,12 @@ def get_booking_data_to_upload():
     return returned_values_upload_list
 
 # export_to_csv('exports/booking_dates', returned_values_upload_list)
+
+test = get_bookings(limit=1)[0]
+
+for k, v in test.items():
+    print(k, v)
+
 
 
 # Commit to DB
