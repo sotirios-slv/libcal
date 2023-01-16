@@ -63,7 +63,6 @@ def get_bookings(date_to_retrieve=False, days=365, page=1, limit=500):
 
 
 # check date of most recent booking, this is to prevent an infinite loop if there's no booking for 'today'
-# todo: wrap in function
 def get_most_recent_booking():
     date_to_check = date.today()
     most_recent_bookings = get_bookings(date_to_retrieve=date_to_check,limit=1,days=1)
@@ -72,44 +71,47 @@ def get_most_recent_booking():
         most_recent_bookings = get_bookings(date=date_to_check,limit=1,days=1)
     return date_to_check
 
+def get_booking_data_to_upload():
 
+    # Calculate no. of days since last update. If it's less than the APIs max days (365) add to the query param
+    last_date_retrieved = get_most_recent_date_in_db()
+    if not last_date_retrieved:
+        print('Unable to retrieve most recent date from database')
+        return False
 
-# Calculate no. of days since last update. If it's less than the APIs max days (365) add to the query param
-last_date_retrieved = get_most_recent_date_in_db()
+    date_to_check = get_most_recent_booking()
+    returned_values_upload_list = []
+    try:
+        days_since_last_update = 1
+        while days_since_last_update > 0:
+            
+            days_since_last_update = date_to_check - last_date_retrieved
+            days_since_last_update = int(days_since_last_update.days)
+            days = min(days_since_last_update,365)
 
-date_to_check = get_most_recent_booking()
+            # Query bookings API from most recent date added recursively using page param until len of returned values is less than limit
+            #* Do not include any bookings after 'today'
+            page_counter = 1
+            bookings_info = get_bookings(date_to_retrieve=last_date_retrieved,days=days, page=page_counter)
 
-returned_values_upload_list = []
+            #* Date returned from LibCal API in following format e.g. 2021-11-10T10:00:00+11:00
+            values_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
+            returned_values_upload_list.extend(values_for_upload)
 
-days_since_last_update = 1
-while days_since_last_update > 0:
-    
-    # todo: wrap in function
-    days_since_last_update = date_to_check - last_date_retrieved
-    days_since_last_update = int(days_since_last_update.days)
-    days = min(days_since_last_update,365)
+            while len(bookings_info) > 0:
+                page_counter += 1
+                bookings_info = get_bookings(date_to_retrieve=last_date_retrieved,days=days, page=page_counter)
+                # todo: need to add exception handling if 'fromDate' key not found
+                values_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
 
-    # Query bookings API from most recent date added recursively using page param until len of returned values is less than limit
-    # Do not include any bookings after 'today'
-    page_counter = 1
-    bookings_info = get_bookings(date_to_retrieve=last_date_retrieved,days=days, page=page_counter)
+                returned_values_upload_list.extend(values_for_upload)
 
-    #  Date returned from LibCal API in following format e.g. 2021-11-10T10:00:00+11:00
-    values_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
-    returned_values_upload_list.extend(values_for_upload)
+            #* Complicated one-liner to get the most recent date:
+            last_date_retrieved = max([element[0].date() for element in returned_values_upload_list])
+    except Exception as e:
+        print(f"The following error occurred: {e}. Process aborted")
 
-    while len(bookings_info) > 0:
-        page_counter += 1
-        bookings_info = get_bookings(date_to_retrieve=last_date_retrieved,days=days, page=page_counter)
-        # todo: need to add a further if key not found
-        values_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
-
-        returned_values_upload_list.extend(values_for_upload)
-
-    # Complicated one-liner to get the most recent date:
-    last_date_retrieved = max([element[0].date() for element in returned_values_upload_list])
-
-    print(last_date_retrieved)
+    return returned_values_upload_list
 
 # export_to_csv('exports/booking_dates', returned_values_upload_list)
 
