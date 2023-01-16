@@ -30,6 +30,20 @@ def query_database(sql_statement, return_data=False):
         print(f'Could not complete sql query. Here is the exception returned: {e}')
         return False
 
+def get_most_recent_date_in_db():
+    sql_statement = """
+        select date
+        from public.slv_data
+        where project = 'libcal'
+        ORDER BY date DESC
+        LIMIT 1
+    """
+    top_date_in_db = query_database(sql_statement, return_data=True)
+    if not top_date_in_db:
+        return False
+        
+    return top_date_in_db[0][0]
+
 def export_to_csv(filename,data_to_write):
 
     f = open(f'{filename}.csv',"a+", newline='')

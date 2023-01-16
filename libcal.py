@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from datetime import date, timedelta, datetime
 import requests
-from shared_helpers import query_database, export_to_csv
+from shared_helpers import export_to_csv, get_most_recent_date_in_db
 
 load_dotenv
 libcal_url = os.environ.get('LIBCAL_URL')
@@ -52,46 +52,27 @@ def get_locations():
 
     return locations
 
-def get_bookings(date=False, days=365, page=1, limit=500):
+def get_bookings(date_to_retrieve=False, days=365, page=1, limit=500):
 
-    if not date:
-        date = date.today().strftime('%Y-%m-%d')
+    if not date_to_retrieve:
+        date_to_retrieve = date.today().strftime('%Y-%m-%d')
 
-    bookings = get_libcal_information(f'space/bookings?date={date}&days={days}&limit={limit}&date={date}&page={page}')
+    bookings = get_libcal_information(f'space/bookings?date={date_to_retrieve}&days={days}&limit={limit}&page={page}')
 
     return bookings
 
 
-# Query locations API and save id and room name into memory
-# locations = get_locations()
-# print(locations)
-
-# Get most recent date added
-# todo: wrap in function
-sql_statement = """
-select date
-from public.slv_data
-where project = 'libcal'
-ORDER BY date DESC
-LIMIT 1
-"""
-top_date_in_db = query_database(sql_statement, return_data=True)
-if not top_date_in_db:
-    print('Could not retrieve most recent date from database')
-
 # check date of most recent booking, this is to prevent an infinite loop if there's no booking for 'today'
 # todo: wrap in function
 date_to_check = date.today()
-most_recent_bookings = get_bookings(date=date_to_check,limit=1,days=1)
+most_recent_bookings = get_bookings(date_to_retrieve=date_to_check,limit=1,days=1)
 while len(most_recent_bookings) == 0:
     date_to_check = date_to_check - timedelta(days=1)
     most_recent_bookings = get_bookings(date=date_to_check,limit=1,days=1)
 
-
 # Calculate no. of days since last update. If it's less than the APIs max days (365) add to the query param
-last_date_retrieved = top_date_in_db[0][0]
+last_date_retrieved = get_most_recent_date_in_db()
 
-booking_dates = []
 returned_values_upload_list = []
 
 days_since_last_update = 1
@@ -100,25 +81,24 @@ while days_since_last_update > 0:
     # todo: wrap in function
     days_since_last_update = date_to_check - last_date_retrieved
     days_since_last_update = int(days_since_last_update.days)
-    print('Days: ', days_since_last_update)
     days = min(days_since_last_update,365)
 
     # Query bookings API from most recent date added recursively using page param until len of returned values is less than limit
     # Do not include any bookings after 'today'
     page_counter = 1
-    bookings_info = get_bookings(date=last_date_retrieved,days=days, page=page_counter)
+    bookings_info = get_bookings(date_to_retrieve=last_date_retrieved,days=days, page=page_counter)
 
-    #  Date returned from LibCal API in following format: 2021-11-10T10:00:00+11:00
+    #  Date returned from LibCal API in following format e.g. 2021-11-10T10:00:00+11:00
     values_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
     returned_values_upload_list.extend(values_for_upload)
 
     while len(bookings_info) > 0:
         page_counter += 1
-        # todo: need to add exception handling for if 'fromDate key not found
+        bookings_info = get_bookings(date_to_retrieve=last_date_retrieved,days=days, page=page_counter)
+        # todo: need to add a further if key not found
         values_for_upload = [[datetime.strptime(booking['fromDate'],'%Y-%m-%dT%H:%M:%S%z'),'visitor','libcal','booking',booking.get('location_name',''),booking.get('item_name',''),booking.get('item_id',''),booking.get('item_status','')] for booking in bookings_info]
 
         returned_values_upload_list.extend(values_for_upload)
-
 
     # Complicated one-liner to get the most recent date:
     last_date_retrieved = max([element[0].date() for element in returned_values_upload_list])
