@@ -18,14 +18,17 @@ Checked In Time
 Booking Form Answers
 """
 
-
-API_FIELDS_TO_RETURN = [
+API_FIELDS = {
+    "non_date_fields" : [
         "bookId",
         "eid",
         "location_name",
         "category_name",
+        "status"
+    ],
+    "date_fields" : [
         "fromDate",
         "toDate",
-        "created",
-        "status"
+        "created"
     ]
+}

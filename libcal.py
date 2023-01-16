@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from datetime import date, timedelta, datetime
 import requests
 from shared_helpers import export_to_csv, get_most_recent_date_in_db
-from api_import_config import API_FIELDS_TO_RETURN
+from api_import_config import API_FIELDS
 
 
 load_dotenv
@@ -109,11 +109,14 @@ def get_most_recent_booking():
 
 def format_booking_data(booking):
 
-    formatted_booking_info = [booking.get(field,'') for field in API_FIELDS_TO_RETURN]
+    formatted_booking_info = [booking.get(field,'') for field in API_FIELDS['non_date_fields']]
 
     #* Date returned from LibCal API in following format e.g. 2021-11-10T10:00:00+11:00
-    formatted_booking_info[4] = datetime.strptime(formatted_booking_info[4],'%Y-%m-%dT%H:%M:%S%z')
-    formatted_booking_info[4] = formatted_booking_info[4].date()
+    datetime_fields = [booking.get(field,'') for field in API_FIELDS['date_fields']]
+    date_fields = [datetime.strptime(date_field,'%Y-%m-%dT%H:%M:%S%z').date() for date_field in datetime_fields]
+    time_fields = [datetime_field.split('T')[1] for datetime_field in datetime_fields]
+    formatted_booking_info.extend(date_fields)
+    formatted_booking_info.extend(time_fields)
 
     return formatted_booking_info
 
@@ -154,8 +157,8 @@ def get_booking_data_to_upload():
                 values_for_upload = [format_booking_data(booking) for booking in bookings_info]
                 returned_values_upload_list.extend(values_for_upload)
 
-            #* Complicated one-liner to get the most recent date:
-            last_date_retrieved = max([element[4] for element in returned_values_upload_list])
+            first_date_field_index = len(API_FIELDS['non_date_fields'])
+            last_date_retrieved = max([element[first_date_field_index] for element in returned_values_upload_list])
     except Exception as e:
         print(f"The following error occurred: {e}. Process aborted")
         return False

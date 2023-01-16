@@ -4,7 +4,7 @@ import csv
 from dotenv import load_dotenv
 import psycopg2
 
-from api_import_config import API_FIELDS_TO_RETURN
+from api_import_config import API_FIELDS
 
 load_dotenv()
 
@@ -62,9 +62,18 @@ def export_to_csv(filename,data_to_write):
         filename (string): The filename (without .csv file extension) to export the data to
         data_to_write (list): Data to add to the csv file, each item will be added to a new line 
     """
+
+    column_names = API_FIELDS['non_date_fields']
+    date_column_name = [f'{date_field}-date' for date_field in API_FIELDS['date_fields']]
+    time_column_name = [f'{date_field}-time' for date_field in API_FIELDS['date_fields']]
+    column_names.extend(date_column_name)
+    column_names.extend(time_column_name)
+
+    print(column_names)
+
     f = open(f'{filename}.csv',"a+", newline='')
 
     with f:
         write = csv.writer(f)
-        write.writerow(API_FIELDS_TO_RETURN)
+        write.writerow(column_names)
         write.writerows(data_to_write)
