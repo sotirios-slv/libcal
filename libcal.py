@@ -64,14 +64,20 @@ def get_bookings(date_to_retrieve=False, days=365, page=1, limit=500):
 
 # check date of most recent booking, this is to prevent an infinite loop if there's no booking for 'today'
 # todo: wrap in function
-date_to_check = date.today()
-most_recent_bookings = get_bookings(date_to_retrieve=date_to_check,limit=1,days=1)
-while len(most_recent_bookings) == 0:
-    date_to_check = date_to_check - timedelta(days=1)
-    most_recent_bookings = get_bookings(date=date_to_check,limit=1,days=1)
+def get_most_recent_booking():
+    date_to_check = date.today()
+    most_recent_bookings = get_bookings(date_to_retrieve=date_to_check,limit=1,days=1)
+    while len(most_recent_bookings) == 0:
+        date_to_check = date_to_check - timedelta(days=1)
+        most_recent_bookings = get_bookings(date=date_to_check,limit=1,days=1)
+    return date_to_check
+
+
 
 # Calculate no. of days since last update. If it's less than the APIs max days (365) add to the query param
 last_date_retrieved = get_most_recent_date_in_db()
+
+date_to_check = get_most_recent_booking()
 
 returned_values_upload_list = []
 
@@ -103,6 +109,7 @@ while days_since_last_update > 0:
     # Complicated one-liner to get the most recent date:
     last_date_retrieved = max([element[0].date() for element in returned_values_upload_list])
 
+    print(last_date_retrieved)
 
 # export_to_csv('exports/booking_dates', returned_values_upload_list)
 
