@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from datetime import date, timedelta, datetime
 import requests
-from shared_helpers import export_to_csv, get_most_recent_date_in_db
+from shared_helpers import export_to_csv, get_most_recent_date_in_db, generate_bookings_column_names
 from api_import_config import API_FIELDS
 
 
@@ -112,7 +112,7 @@ def format_booking_data(booking):
     formatted_booking_info = [booking.get(field,'') for field in API_FIELDS['non_date_fields']]
 
     #* Date returned from LibCal API in following format e.g. 2021-11-10T10:00:00+11:00
-    datetime_fields = [booking.get(field,'') for field in API_FIELDS['date_fields']]
+    datetime_fields = [booking.get(field,'') for field in API_FIELDS['datetime_fields']]
     date_fields = [datetime.strptime(date_field,'%Y-%m-%dT%H:%M:%S%z').date() for date_field in datetime_fields]
     time_fields = [datetime_field.split('T')[1] for datetime_field in datetime_fields]
     formatted_booking_info.extend(date_fields)
@@ -167,7 +167,10 @@ def get_booking_data_to_upload():
 
 returned_values_upload_list = get_booking_data_to_upload()
 
-export_to_csv('exports/booking_dates', returned_values_upload_list)
+
+
+bookings_columns_names = generate_bookings_column_names()
+export_to_csv('exports/booking_dates', returned_values_upload_list,bookings_columns_names)
 
 
 # Commit to DB
