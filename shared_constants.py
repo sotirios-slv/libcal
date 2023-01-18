@@ -14,3 +14,5 @@ API_FIELDS = [
         "toDate",
         "created"
     ]
+
+DB_TABLE_NAME = 'libcal_bookings'

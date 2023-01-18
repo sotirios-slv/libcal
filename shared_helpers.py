@@ -44,21 +44,22 @@ def query_database(sql_statement, return_data=False):
         print(f'Could not complete sql query. Here is the exception returned: {e}')
         return False
 
-def query_azure_database(sql_statement,environment='dev'):
+def query_azure_database(sql_statement,environment='dev',return_data=False):
 
     username = get_key_vault_secret('sqladminuser',AZURE_VARIABLES[environment])
     password = get_key_vault_secret('sqladminpassword',AZURE_VARIABLES[environment])
-
     connection_string = f"Driver={{ODBC Driver 18 for SQL Server}};Server=tcp:slv-{environment}-sqldw.database.windows.net,1433;Database={environment}-edw;Uid={username};Pwd={{{password}}};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
 
     try:
+        data_to_return = True
         con = pyodbc.connect(connection_string)
         cursor = con.cursor()
         cursor.execute(sql_statement)
+        if return_data:
+            data_to_return = cursor.fetchall()
         con.commit()
         con.close()
-
-        return True
+        return data_to_return
 
     except Exception as e:
         print(f'Could not complete sql query. Here is the exception returned: {e}')
