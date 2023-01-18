@@ -7,6 +7,9 @@ name = "pypi"
 requests = "*"
 python-dotenv = "*"
 psycopg2 = "*"
+pyodbc = "*"
+azure-keyvault-secrets = "*"
+azure-identity = "*"
 
 [dev-packages]
 

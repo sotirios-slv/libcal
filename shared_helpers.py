@@ -3,8 +3,11 @@ import csv
 
 from dotenv import load_dotenv
 import psycopg2
+import pyodbc
 
 from api_import_config import API_FIELDS
+from shared_azure import get_key_vault_secret
+from shared_constants import AZURE_VARIABLES
 
 load_dotenv()
 
@@ -12,6 +15,7 @@ host = os.environ.get('DB_HOST')
 dbname = os.environ.get('DB_NAME')
 user = os.environ.get('DB_USER')
 password = os.environ.get('DB_PASSWORD')
+
 
 def query_database(sql_statement, return_data=False):
     """helper function to run any valid SQL statement against the DB
@@ -36,6 +40,28 @@ def query_database(sql_statement, return_data=False):
         cur.close()
         conn.close()
         return data_to_return
+
+    except Exception as e:
+        print(f'Could not complete sql query. Here is the exception returned: {e}')
+        return False
+
+def query_azure_database(sql_statement,environment='dev'):
+
+    username = get_key_vault_secret('sqladminuser',AZURE_VARIABLES[environment])
+    password = get_key_vault_secret('sqladminpassword',AZURE_VARIABLES[environment])
+
+    connection_string = f"Driver={{ODBC Driver 18 for SQL Server}};Server=tcp:slv-{environment}-sqldw.database.windows.net,1433;Database={environment}-edw;Uid={username};Pwd={{{password}}};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+    print('Con string: ',connection_string)
+
+    try:
+        con = pyodbc.connect(connection_string)
+        
+        cursor = con.cursor()
+
+        cursor.execute(sql_statement)
+        row = cursor.fetchall()
+
+        return row
 
     except Exception as e:
         print(f'Could not complete sql query. Here is the exception returned: {e}')
@@ -85,3 +111,16 @@ def generate_bookings_column_names():
     column_names.extend(time_column_name)
 
     return column_names
+
+
+# sql = """
+# SELECT TOP (1) [SK]
+#       ,[ProfileId]
+#       ,[City]
+#       ,[ProfileFollowers]
+#       ,[QueryDate]
+#       ,[CurrentFlag]
+#   FROM [dbo].[instagram_city]
+# """
+
+# query_azure_database(sql,'dev')

@@ -165,12 +165,9 @@ def get_booking_data_to_upload():
 
     return returned_values_upload_list
 
-returned_values_upload_list = get_booking_data_to_upload()
-
-
-
-bookings_columns_names = generate_bookings_column_names()
-export_to_csv('exports/booking_dates', returned_values_upload_list,bookings_columns_names)
+# returned_values_upload_list = get_booking_data_to_upload()
+# bookings_columns_names = generate_bookings_column_names()
+# export_to_csv('exports/booking_dates', returned_values_upload_list,bookings_columns_names)
 
 
 # Commit to DB
