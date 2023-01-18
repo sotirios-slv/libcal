@@ -2,8 +2,8 @@ import os
 from dotenv import load_dotenv
 from datetime import date, timedelta, datetime
 import requests
-from shared_helpers import export_to_csv, get_most_recent_date_in_db, generate_bookings_column_names
-from api_import_config import API_FIELDS
+from shared_helpers import get_most_recent_date_in_db, export_to_csv
+from shared_constants import API_FIELDS
 
 
 load_dotenv
@@ -109,14 +109,10 @@ def get_most_recent_booking():
 
 def format_booking_data(booking):
 
-    formatted_booking_info = [booking.get(field,'') for field in API_FIELDS['non_date_fields']]
+    formatted_booking_info = [booking.get(field,'') for field in API_FIELDS]
 
     #* Date returned from LibCal API in following format e.g. 2021-11-10T10:00:00+11:00
-    datetime_fields = [booking.get(field,'') for field in API_FIELDS['datetime_fields']]
-    date_fields = [datetime.strptime(date_field,'%Y-%m-%dT%H:%M:%S%z').date() for date_field in datetime_fields]
-    time_fields = [datetime_field.split('T')[1] for datetime_field in datetime_fields]
-    formatted_booking_info.extend(date_fields)
-    formatted_booking_info.extend(time_fields)
+    # formatted_booking_info[5] = datetime.strptime(formatted_booking_info[5],'%Y-%m-%dT%H:%M:%S%z').date()
 
     return formatted_booking_info
 
@@ -157,8 +153,8 @@ def get_booking_data_to_upload():
                 values_for_upload = [format_booking_data(booking) for booking in bookings_info]
                 returned_values_upload_list.extend(values_for_upload)
 
-            first_date_field_index = len(API_FIELDS['non_date_fields'])
-            last_date_retrieved = max([element[first_date_field_index] for element in returned_values_upload_list])
+            # last_date_retrieved = max([element[5] for element in returned_values_upload_list])
+            last_date_retrieved = max([datetime.strptime(element[5],'%Y-%m-%dT%H:%M:%S%z').date() for element in returned_values_upload_list])
     except Exception as e:
         print(f"The following error occurred: {e}. Process aborted")
         return False
@@ -166,10 +162,4 @@ def get_booking_data_to_upload():
     return returned_values_upload_list
 
 # returned_values_upload_list = get_booking_data_to_upload()
-# bookings_columns_names = generate_bookings_column_names()
-# export_to_csv('exports/booking_dates', returned_values_upload_list,bookings_columns_names)
-
-
-# Commit to DB
-
-# Disconnect from DB
+# export_to_csv('exports/booking_dates2', returned_values_upload_list,API_FIELDS)
