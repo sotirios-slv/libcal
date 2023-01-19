@@ -114,7 +114,7 @@ def format_booking_data(booking):
 
     return formatted_booking_info
 
-def get_booking_data_to_upload():
+def get_booking_data_to_upload(environment):
     """Polls the LibCal recursively from the last date recorded in the DB (or the default value if not present) and builds a list of lists containing the data to upload to the DB
 
     Returns:
@@ -122,7 +122,7 @@ def get_booking_data_to_upload():
         list: List of nested lists containing metadata extracted from the LibCal API 
     """
     # Calculate no. of days since last update. If it's less than the APIs max days (365) add to the query param
-    last_date_retrieved = get_most_recent_date_in_db()
+    last_date_retrieved = get_most_recent_date_in_db(environment,prepend='stg')
     if not last_date_retrieved:
         print('Unable to retrieve most recent date from database')
         return False
@@ -132,7 +132,6 @@ def get_booking_data_to_upload():
     try:
         days_since_last_update = 1
         while days_since_last_update > 0:
-            
             days_since_last_update = date_to_check - last_date_retrieved
             days_since_last_update = int(days_since_last_update.days)
             days = min(days_since_last_update,365)
@@ -158,3 +157,5 @@ def get_booking_data_to_upload():
         return False
 
     return returned_values_upload_list
+
+get_booking_data_to_upload('dev')

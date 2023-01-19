@@ -1,3 +1,4 @@
+from datetime import datetime, date
 import os
 
 from azure.identity import ClientSecretCredential
@@ -87,7 +88,7 @@ def create_azure_sql_table(environment, prepend=False ):
 def get_most_recent_date_in_db(environment, prepend=False):
 
     if check_if_table_exists(environment,prepend=prepend) == False:
-        return EARLIEST_DATE
+        return datetime.strptime(EARLIEST_DATE,'%Y-%m-%d').date()
 
     table_name = DB_TABLE_NAME
     if prepend:
@@ -100,11 +101,9 @@ def get_most_recent_date_in_db(environment, prepend=False):
     """
     top_date_in_db = query_azure_database(sql_statement, environment=environment, return_data=True)
 
-    print('TOP: ',top_date_in_db)
-
     if not top_date_in_db:
-        return EARLIEST_DATE
+        return datetime.strptime(EARLIEST_DATE,'%Y-%m-%d').date()
 
-    return top_date_in_db[0][0]
+    return datetime.strptime(top_date_in_db[0][0],'%Y-%m-%d').date()
 
-print(get_most_recent_date_in_db('dev',prepend='stg'))
+# print(get_most_recent_date_in_db('dev',prepend='stg'))
