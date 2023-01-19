@@ -2,7 +2,8 @@ import os
 from dotenv import load_dotenv
 from datetime import date, timedelta, datetime
 import requests
-from shared_helpers import get_most_recent_date_in_db, export_to_csv
+from shared_helpers import export_to_csv
+from shared_azure import get_most_recent_date_in_db
 from shared_constants import API_FIELDS
 
 
@@ -111,9 +112,6 @@ def format_booking_data(booking):
 
     formatted_booking_info = [booking.get(field,'') for field in API_FIELDS]
 
-    #* Date returned from LibCal API in following format e.g. 2021-11-10T10:00:00+11:00
-    # formatted_booking_info[5] = datetime.strptime(formatted_booking_info[5],'%Y-%m-%dT%H:%M:%S%z').date()
-
     return formatted_booking_info
 
 def get_booking_data_to_upload():
@@ -153,13 +151,10 @@ def get_booking_data_to_upload():
                 values_for_upload = [format_booking_data(booking) for booking in bookings_info]
                 returned_values_upload_list.extend(values_for_upload)
 
-            # last_date_retrieved = max([element[5] for element in returned_values_upload_list])
+            #* datetime.strptime(element[5],'%Y-%m-%dT%H:%M:%S%z').date() is a complicated way of converting the string returned by the API into a date format
             last_date_retrieved = max([datetime.strptime(element[5],'%Y-%m-%dT%H:%M:%S%z').date() for element in returned_values_upload_list])
     except Exception as e:
         print(f"The following error occurred: {e}. Process aborted")
         return False
 
     return returned_values_upload_list
-
-# returned_values_upload_list = get_booking_data_to_upload()
-# export_to_csv('exports/booking_dates2', returned_values_upload_list,API_FIELDS)

@@ -3,10 +3,6 @@ import csv
 
 from dotenv import load_dotenv
 import psycopg2
-import pyodbc
-
-from shared_azure import get_key_vault_secret
-from shared_constants import AZURE_VARIABLES
 
 load_dotenv()
 
@@ -44,40 +40,6 @@ def query_database(sql_statement, return_data=False):
         print(f'Could not complete sql query. Here is the exception returned: {e}')
         return False
 
-def query_azure_database(sql_statement,environment='dev',return_data=False):
-
-    username = get_key_vault_secret('sqladminuser',AZURE_VARIABLES[environment])
-    password = get_key_vault_secret('sqladminpassword',AZURE_VARIABLES[environment])
-    connection_string = f"Driver={{ODBC Driver 18 for SQL Server}};Server=tcp:slv-{environment}-sqldw.database.windows.net,1433;Database={environment}-edw;Uid={username};Pwd={{{password}}};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
-
-    try:
-        data_to_return = True
-        con = pyodbc.connect(connection_string)
-        cursor = con.cursor()
-        cursor.execute(sql_statement)
-        if return_data:
-            data_to_return = cursor.fetchall()
-        con.commit()
-        con.close()
-        return data_to_return
-
-    except Exception as e:
-        print(f'Could not complete sql query. Here is the exception returned: {e}')
-        return False
-
-def get_most_recent_date_in_db():
-    sql_statement = """
-        select date
-        from public.slv_data
-        where project = 'libcal'
-        ORDER BY date DESC
-        LIMIT 1
-    """
-    top_date_in_db = query_database(sql_statement, return_data=True)
-    if not top_date_in_db:
-        return False
-
-    return top_date_in_db[0][0]
 
 def export_to_csv(filename,data_to_write,column_names):
     """Helper function to write any list to a CSV file
